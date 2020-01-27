@@ -1,8 +1,7 @@
 void rechercherFromReads(char** sequence, int n, int nbrReads){
     //rechercherFromReads(sequence,read,n);
     char* motif ;
-    int d ,i = 0;
-    char *pch = strstr(sequence[0],motif);
+    int i = 0;
     motif  = malloc((n+1)*sizeof(char));
     printf("Entrer un motif : \n");
     scanf("%s", motif);
