@@ -1,11 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "fichier_genome.h"
+#include <stdlib.h>
+#include <string.h>
+#include "fastq.h"
 
-char** extract_file(char* file_dir)
+char** extract_file(char* file_dir,char** sequence)
 {
     int n , read , i , m , nbre_read ;
-    char c , **sequence, **copie ;
+    char c , **copie ;
     FILE *fichier;
     //nombre de reads
     n = nbre_lignes(file_dir);
@@ -34,15 +36,13 @@ char** extract_file(char* file_dir)
         i++;
     }
     nbre_read = n/4 ;
-    sequence = malloc(nbre_read*sizeof(char*));
-    for(int i=0; i < nbre_read; i++)
-        sequence[i] = malloc(read*sizeof(char));
-    sequence[0] = copie [1];
+    strcpy(sequence[0],copie [1]);
     for (int i=0; i < nbre_read; i++)
     {
-        sequence[i] = copie[1+6*i];
+        strcpy(sequence[i],copie[1+6*i]);
     }
     fclose(fichier);
+    free(copie);
     return sequence;
 }
 
@@ -94,3 +94,5 @@ int taille_read(char* file_dir)
     }
     return read;
 }
+
+
