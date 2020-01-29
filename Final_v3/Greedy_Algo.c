@@ -9,109 +9,73 @@ char* assemblage()
 {
 	clock_t tic = clock();
     char** sequence;
-    char** finalscs;
-    char* scs1;
+    char* shortest_common_superstring;
     int n,read;
+    int max_size;
     int recherche;
     n = nbre_read("C:\\Users\\Msi\\Desktop\\genome.fq");
     read = taille_read("C:\\Users\\Msi\\Desktop\\genome.fq");
-    scs1 = malloc(n*read*sizeof(char));
+    max_size = read * n;
     sequence = malloc(n*sizeof(char*));
     for(int i=0; i < n; i++)
-        sequence[i] = malloc(read*sizeof(char));
-    finalscs = malloc(n*sizeof(char*));
-    for(int i=0; i < n; i++)
-        finalscs[i] = malloc(read*sizeof(char));
+        sequence[i] = malloc(max_size*sizeof(char));
+    shortest_common_superstring = malloc(max_size * sizeof(char));
+    strcpy(shortest_common_superstring,"");
     extract_file("C:\\Users\\Msi\\Desktop\\genome.fq",sequence);
-    //adj_matrix(sequence,n,read,max_size);
+    greedy(sequence,n,read,max_size);
     //for(int i=0; i < n; i++)
     //    printf("%s,", sequence[i]);
-
-    strcpy(scs1,chemin(sequence, n, read, finalscs));
-    //join(sequence, shortest_common_superstring,n);
     printf("\n \n");
-    //printf("shortest common superstring = %s",shortest_common_superstring);
-    //printf("final = %s \n \n %s",sequence[0],sequence[1]);
-    //rechercherFromReads(sequence,read,n);
-    /*for (int i = 0; i < n; ++i)
-    {
-        printf("%s \n",finalscs[i]);
-    }*/
-    printf("\n");
     clock_t toc = clock();
-    printf("le genome assemblé est: %s", scs1);
-    printf(" \ntemps d'éxecution: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
-    return scs1;
+    printf(" \nElapsed: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
+    return shortest_common_superstring;
 }
 
-
-char* chemin(char** sequence, int n, int read, char** finalscs)
+char* greedy(char** sequence, int n, int read, int max_size)
 {
-    int max,i1,j1,cnt;
-    int *p;
-    int c=0;
-    char* scs;
-    char* temp;
-    int *indices = malloc(2*(n+1)*sizeof(int));
-    scs = malloc(n*read*sizeof(char));
-    temp = malloc(n*read*sizeof(char));
-    strcpy(scs,"");
+    int olen,best_olen = 0;
+    //char *no = "no";
+    char *temp,*temp2;
+    int* p;
+    int c,d;
+    int check = 0;
+    int cnt = 0;
+    best_olen = 1;
     p = graph(sequence,n);
-    cnt = 0;
-    while(cnt<n){
-        max = 0;
-        for(int i = 0; i < n; i++)
+    temp = (char *)malloc(max_size * sizeof(char));
+    temp2 = (char *)malloc(max_size * sizeof(char));
+    while(cnt < n){
+        best_olen = 0;
+        check = 0;
+        for(int i=0;i<n;i++)
         {
-            for (int j = 0; j < n; j++)
+            for(int j=0;j<n;j++)
             {
-                if (( *(p + n * i + j) >= 0 ) && (*( p + n * i + j) >= max))
+                if(i!=j)
                 {
-                    max = *( p + n * i + j);
-                    i1 = i;
-                    j1 = j;
+                    olen = *(p + n * i + j);
+                    if(olen >= best_olen)
+                    {
+                        best_olen = olen;
+                        c = i;
+                        d = j;
+                        check = 1;
+                    }
                 }
             }
         }
-        remove_edge(p,i1,j1,n);
-        printf("arc choisi %d-->%d \n",i1,j1);
-        indices[2*cnt] = i1;
-        indices[2*cnt+1] = j1;
-        //printf("cnt = %d \n",cnt);
-        cnt++;
-    }
-    for (int i = 0; i < n; i++)
-    {
-        printf("%d-->%d,",indices[2*i],indices[2*i+1]);
-    }
-    printf("\n DONE");
-    strcpy(finalscs[0],sequence[indices[0]]);
-    strcpy(finalscs[1],sequence[indices[1]]);
-    for (int j = 1; j < n-1; j++)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            if(indices[2*i]==indices[2*c+1])
-            {
-                c=i;
-                break;
-            }
+        if (check == 1){
+            concatenate(sequence[c],sequence[d],best_olen,max_size,temp);
+            strcpy(sequence[c],temp);
+            remove_edge(p,c,d,n);
         }
-        strcpy(finalscs[j+1],sequence[indices[2*c+1]]);
-    }
-    printf("\n");
-    for (int i = 0; i < n; i++)
-    {
-        printf("seq=%s \n",finalscs[i+1]);
-    }
-    strcat(scs,finalscs[0]);
-    for (int i = 0; i < n-1; i++)
-    {
-        concatenate(scs,finalscs[i+1],temp);
-        strcpy(scs,temp);
-    }
-    return scs;
-}
+        cnt += 1;
+        printf("cnt = %d, BO = %d \n",cnt,best_olen);
 
+    }
+    printf("le genome original est = %s",sequence[c]);
+    return sequence[c];
+}
 int num_of_overlap(char *a,char *b)
 {
     int na,nb;
@@ -143,50 +107,52 @@ int num_of_overlap(char *a,char *b)
     return j;
 }
 
-void concatenate(char *r1, char *r2,char* temp)
+char* concatenate(char *r1, char *r2, int best_olen, int max_size, char *temp)
 {
     int len1 = strlen(r1);
     int len2 = strlen(r2);
-    int olen = num_of_overlap(r1,r2);
     strcpy(temp,r1);
-    for (int i=0; i< (len2 - olen); i++){
-        temp[len1 + i] = r2[olen + i];
+    for (int i=0; i< (len2 - best_olen); i++){
+        temp[len1 + i] = r2[best_olen + i];
     }
-    temp[len1 + len2 - olen] = '\0';
+    temp[len1 + len2 - best_olen] = '\0';
 }
 
-
-int* graph( char** sequence, int n){
+int* graph( char** sequence, int n)
+{
     int n2 = n*n;
     int *p;
     //int *adj_mat = (int *)malloc(n2 * sizeof(int));
     p = calloc(n2, sizeof(int) );
     for(int i=0;i<n;i++){
-        for(int j=0;j<n;j++){
-            if(i==j){
+        for(int j=0;j<n;j++)
+        {
+            if(i==j)
+            {
                 *(p+n*i+j) = -1;
             }
             //printf("%d,",num_of_overlap(sequence[i],sequence[j]));
-            else{
+            else
+            {
                 *(p+n*i+j) = num_of_overlap(sequence[i],sequence[j]);
                 //printf("%d, ",*(p+n*i+j)); //TO PRINT ADJACENCY MATRIX
             }
         }
     }
-    printf("building graph done \n");
+    printf("Construction du graphe terminee \n");
     return p;
 }
 
 void remove_edge(int *p, int i1,int j1, int n)
 {
-    *(p + n*i1 + j1) = -1;
-    *(p + n*j1 + i1) = -1;
+    for (int j = 0; j < n; j++)
+    {
+        *(p + n*i1 + j ) = *(p + n*j1 + j);
+    }
     for (int i = 0; i < n; i++)
     {
         *(p + n*i + j1) = -1;
+        *(p + n*j1 + i) = -1;
     }
-    for (int j = 0; j < n; j++)
-    {
-        *(p + n*i1 + j ) = -1;
-    }
+
 }
